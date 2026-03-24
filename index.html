@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Bookings</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0f0f0f;
+    color: #e0e0e0;
+    min-height: 100vh;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .week-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .week-nav button {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    color: #e0e0e0;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+
+  .week-nav button:hover { background: #3a3a3a; }
+
+  .week-label {
+    font-size: 14px;
+    color: #aaa;
+    min-width: 180px;
+    text-align: center;
+  }
+
+  .user-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .user-select label {
+    font-size: 13px;
+    color: #888;
+  }
+
+  select {
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    color: #e0e0e0;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  select:focus { border-color: #555; }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    padding: 12px 24px;
+    background: #141414;
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #aaa;
+  }
+
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  .calendar {
+    display: grid;
+    grid-template-columns: 60px repeat(7, 1fr);
+    overflow-x: auto;
+  }
+
+  .corner {
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    border-right: 1px solid #2a2a2a;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .day-header {
+    text-align: center;
+    padding: 12px 4px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    border-right: 1px solid #2a2a2a;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .day-header .day-name {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #888;
+    letter-spacing: 0.5px;
+  }
+
+  .day-header .day-date {
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  .day-header.today .day-date {
+    background: #e0e0e0;
+    color: #0f0f0f;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .time-label {
+    padding: 0 8px;
+    font-size: 11px;
+    color: #666;
+    text-align: right;
+    border-right: 1px solid #2a2a2a;
+    height: 40px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    transform: translateY(-6px);
+  }
+
+  .cell {
+    height: 40px;
+    border-bottom: 1px solid #1e1e1e;
+    border-right: 1px solid #1e1e1e;
+    cursor: pointer;
+    transition: background 0.1s;
+    position: relative;
+  }
+
+  .cell:hover {
+    background: #1e1e1e;
+  }
+
+  .cell.booked {
+    cursor: pointer;
+  }
+
+  .cell .booking-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(0,0,0,0.7);
+    padding: 2px 4px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .cell.drag-preview {
+    outline: 2px solid rgba(255,255,255,0.3);
+    outline-offset: -2px;
+  }
+
+  /* Bread Club - warm orange */
+  .cell.user-breadclub { background: #e8873c; }
+  .cell.user-breadclub:hover { background: #d4782f; }
+
+  /* Bella - soft purple */
+  .cell.user-bella { background: #9b72cf; }
+  .cell.user-bella:hover { background: #8a62be; }
+
+  /* Dylan - teal */
+  .cell.user-dylan { background: #4db6a0; }
+  .cell.user-dylan:hover { background: #3ea590; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    color: #e0e0e0;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  .clear-btn {
+    background: #3a2020;
+    border: 1px solid #5a3030;
+    color: #e08080;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .clear-btn:hover { background: #4a2525; }
+
+  @media (max-width: 700px) {
+    .calendar { grid-template-columns: 44px repeat(7, 1fr); }
+    .time-label { font-size: 10px; padding: 0 4px; }
+    .day-header .day-name { font-size: 10px; }
+    .day-header .day-date { font-size: 14px; }
+    header { padding: 12px 16px; }
+    h1 { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Studio Bookings</h1>
+  <div class="header-controls">
+    <div class="week-nav">
+      <button id="prevWeek" title="Previous week">&#8249;</button>
+      <span class="week-label" id="weekLabel"></span>
+      <button id="nextWeek" title="Next week">&#8250;</button>
+    </div>
+    <div class="user-select">
+      <label for="userPicker">Booking as:</label>
+      <select id="userPicker">
+        <option value="breadclub">Bread Club</option>
+        <option value="bella">Bella</option>
+        <option value="dylan">Dylan</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#e8873c"></div>Bread Club</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#9b72cf"></div>Bella</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4db6a0"></div>Dylan</div>
+</div>
+
+<div class="calendar" id="calendar"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const USERS = {
+  breadclub: { name: 'Bread Club', class: 'user-breadclub' },
+  bella:     { name: 'Bella',      class: 'user-bella' },
+  dylan:     { name: 'Dylan',      class: 'user-dylan' }
+};
+
+const HOURS_START = 8;
+const HOURS_END = 23;
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const STORAGE_KEY = 'studio_bookings';
+
+let weekOffset = 0;
+let isDragging = false;
+let dragStart = null;
+let dragDay = null;
+let dragAction = null; // 'book' or 'clear'
+let dragCells = [];
+
+// Persist selected user
+const savedUser = localStorage.getItem('studio_selected_user');
+if (savedUser && USERS[savedUser]) {
+  document.getElementById('userPicker').value = savedUser;
+}
+document.getElementById('userPicker').addEventListener('change', (e) => {
+  localStorage.setItem('studio_selected_user', e.target.value);
+});
+
+function getWeekStart(offset) {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = (day === 0 ? -6 : 1 - day) + (offset * 7);
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+function dateKey(date) {
+  return date.toISOString().split('T')[0];
+}
+
+function loadBookings() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  } catch { return {}; }
+}
+
+function saveBookings(bookings) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+}
+
+function cellKey(day, hour) {
+  return `${day}_${hour}`;
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function formatHour(h) {
+  if (h === 0 || h === 24) return '12am';
+  if (h === 12) return '12pm';
+  return h > 12 ? (h - 12) + 'pm' : h + 'am';
+}
+
+function render() {
+  const cal = document.getElementById('calendar');
+  cal.innerHTML = '';
+  const monday = getWeekStart(weekOffset);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const bookings = loadBookings();
+  const today = new Date();
+  const todayStr = dateKey(today);
+
+  // Week label
+  const monthFmt = { month: 'short', day: 'numeric' };
+  document.getElementById('weekLabel').textContent =
+    monday.toLocaleDateString('en-US', monthFmt) + ' – ' +
+    sunday.toLocaleDateString('en-US', { ...monthFmt, year: 'numeric' });
+
+  // Corner
+  const corner = document.createElement('div');
+  corner.className = 'corner';
+  cal.appendChild(corner);
+
+  // Day headers
+  const dayDates = [];
+  for (let d = 0; d < 7; d++) {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + d);
+    dayDates.push(date);
+    const dh = document.createElement('div');
+    dh.className = 'day-header' + (dateKey(date) === todayStr ? ' today' : '');
+    dh.innerHTML = `<div class="day-name">${DAYS[d]}</div><div class="day-date">${date.getDate()}</div>`;
+    cal.appendChild(dh);
+  }
+
+  // Hour rows
+  for (let h = HOURS_START; h < HOURS_END; h++) {
+    const tl = document.createElement('div');
+    tl.className = 'time-label';
+    tl.textContent = formatHour(h);
+    cal.appendChild(tl);
+
+    for (let d = 0; d < 7; d++) {
+      const dk = dateKey(dayDates[d]);
+      const ck = cellKey(dk, h);
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.day = dk;
+      cell.dataset.hour = h;
+      cell.dataset.dayIndex = d;
+
+      const booking = bookings[ck];
+      if (booking && USERS[booking]) {
+        cell.classList.add('booked', USERS[booking].class);
+      }
+
+      // Mouse events
+      cell.addEventListener('mousedown', onCellMouseDown);
+      cell.addEventListener('mouseenter', onCellMouseEnter);
+
+      // Touch events
+      cell.addEventListener('touchstart', onCellTouchStart, { passive: false });
+      cell.addEventListener('touchmove', onCellTouchMove, { passive: false });
+
+      cal.appendChild(cell);
+    }
+  }
+}
+
+function onCellMouseDown(e) {
+  e.preventDefault();
+  startDrag(this);
+  window.addEventListener('mouseup', onMouseUp, { once: true });
+}
+
+function onCellMouseEnter(e) {
+  if (!isDragging) return;
+  extendDrag(this);
+}
+
+function onMouseUp() {
+  finishDrag();
+}
+
+function onCellTouchStart(e) {
+  e.preventDefault();
+  startDrag(this);
+  window.addEventListener('touchend', onTouchEnd, { once: true });
+}
+
+function onCellTouchMove(e) {
+  e.preventDefault();
+  if (!isDragging) return;
+  const touch = e.touches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (el && el.classList.contains('cell')) {
+    extendDrag(el);
+  }
+}
+
+function onTouchEnd() {
+  finishDrag();
+}
+
+function startDrag(cell) {
+  isDragging = true;
+  dragDay = cell.dataset.day;
+  dragStart = parseInt(cell.dataset.hour);
+
+  const bookings = loadBookings();
+  const ck = cellKey(cell.dataset.day, cell.dataset.hour);
+  const user = document.getElementById('userPicker').value;
+
+  // Determine action: if cell is booked by current user, we clear; otherwise we book
+  if (bookings[ck] === user) {
+    dragAction = 'clear';
+  } else {
+    dragAction = 'book';
+  }
+
+  dragCells = [cell];
+  cell.classList.add('drag-preview');
+}
+
+function extendDrag(cell) {
+  // Only allow dragging within same day
+  if (cell.dataset.day !== dragDay) return;
+
+  const hour = parseInt(cell.dataset.hour);
+  const minH = Math.min(dragStart, hour);
+  const maxH = Math.max(dragStart, hour);
+
+  // Clear old previews
+  dragCells.forEach(c => c.classList.remove('drag-preview'));
+  dragCells = [];
+
+  // Select all cells in range for this day
+  const allCells = document.querySelectorAll(`.cell[data-day="${dragDay}"]`);
+  allCells.forEach(c => {
+    const ch = parseInt(c.dataset.hour);
+    if (ch >= minH && ch <= maxH) {
+      c.classList.add('drag-preview');
+      dragCells.push(c);
+    }
+  });
+}
+
+function finishDrag() {
+  if (!isDragging) return;
+  isDragging = false;
+
+  const user = document.getElementById('userPicker').value;
+  const bookings = loadBookings();
+  let changed = false;
+
+  dragCells.forEach(cell => {
+    cell.classList.remove('drag-preview');
+    const ck = cellKey(cell.dataset.day, cell.dataset.hour);
+
+    if (dragAction === 'book') {
+      // Only book if not taken by someone else
+      if (!bookings[ck] || bookings[ck] === user) {
+        bookings[ck] = user;
+        changed = true;
+      }
+    } else {
+      // Only clear own bookings
+      if (bookings[ck] === user) {
+        delete bookings[ck];
+        changed = true;
+      }
+    }
+  });
+
+  if (changed) {
+    saveBookings(bookings);
+    const hrs = dragCells.length;
+    if (dragAction === 'book') {
+      showToast(`${USERS[user].name} booked ${hrs} hour${hrs > 1 ? 's' : ''}`);
+    } else {
+      showToast(`Cleared ${hrs} hour${hrs > 1 ? 's' : ''}`);
+    }
+    render();
+  }
+
+  dragCells = [];
+  dragStart = null;
+  dragDay = null;
+  dragAction = null;
+}
+
+// Navigation
+document.getElementById('prevWeek').addEventListener('click', () => { weekOffset--; render(); });
+document.getElementById('nextWeek').addEventListener('click', () => { weekOffset++; render(); });
+
+// Initial render
+render();
+</script>
+</body>
+</html>
